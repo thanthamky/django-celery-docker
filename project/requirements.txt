@@ -1,0 +1,16 @@
+django 
+django-ninja 
+psycopg2-binary
+requests
+pyjwt
+pillow
+cryptography
+pydantic
+pydantic[email]
+
+celery
+redis
+django-celery-beat
+
+rasterio
+numpy

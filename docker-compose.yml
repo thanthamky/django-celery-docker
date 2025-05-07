@@ -1,0 +1,68 @@
+
+services:
+  web:
+    build:
+      context: ./project
+      dockerfile: Dockerfile
+    container_name: satary_django
+    command: python manage.py runserver 0.0.0.0:8000
+    # command: gunicorn project.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - ./project:/app
+      - ${STORE_DIR}:/app/store
+    ports:
+      - "1415:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgis
+
+  postgis:
+      container_name: satary_postgis
+      image: postgis/postgis:17-3.5-alpine
+      environment:
+        - POSTGRES_USER=${DB_USER}
+        - POSTGRES_PASSWORD=${DB_PASSWORD}
+        - POSTGRES_DB=${DB_NAME}
+      ports:
+        - "5432"
+      env_file:
+        - .env
+      volumes:
+        - postgis_db:/var/lib/postgresql/data
+        
+  celery:
+    build: ./project
+    container_name: satary_celery
+    command: celery -A project worker -l info
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./project:/app
+      - ${STORE_DIR}:/app/store
+    depends_on:
+      - web
+
+  celery-beat:
+    build: ./project
+    container_name: satary_celery_beat
+    restart: always
+    command: celery -A project beat -l info -S django
+    env_file:
+      - .env
+    volumes:
+      - ./project:/app
+      - ${STORE_DIR}:/app/store
+    depends_on:
+      - web
+
+  redis:
+    image: redis:alpine
+    container_name: satary_redis
+    restart: always
+    ports:
+    - "6379"
+
+volumes:
+  postgis_db:

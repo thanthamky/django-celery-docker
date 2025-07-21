@@ -4,22 +4,26 @@ services:
     build:
       context: ./project
       dockerfile: Dockerfile
-    container_name: satary_django
-    command: python manage.py runserver 0.0.0.0:8000
+    container_name: ${PROJECT_NAME}_django
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
     # command: gunicorn project.wsgi:application --bind 0.0.0.0:8000
+    restart: always
     volumes:
       - ./project:/app
       - ${STORE_DIR}:/app/store
     ports:
-      - "1415:8000"
+      - "${SERVER_PORT}:8000"
     env_file:
       - .env
     depends_on:
       - postgis
 
   postgis:
-      container_name: satary_postgis
+      container_name: ${PROJECT_NAME}_postgis
       image: postgis/postgis:17-3.5-alpine
+      restart: always
       environment:
         - POSTGRES_USER=${DB_USER}
         - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -33,7 +37,7 @@ services:
         
   celery:
     build: ./project
-    container_name: satary_celery
+    container_name: ${PROJECT_NAME}_celery
     command: celery -A project worker -l info
     restart: always
     env_file:
@@ -46,7 +50,7 @@ services:
 
   celery-beat:
     build: ./project
-    container_name: satary_celery_beat
+    container_name: ${PROJECT_NAME}_celery_beat
     restart: always
     command: celery -A project beat -l info -S django
     env_file:
@@ -59,7 +63,7 @@ services:
 
   redis:
     image: redis:alpine
-    container_name: satary_redis
+    container_name: ${PROJECT_NAME}_redis
     restart: always
     ports:
     - "6379"
